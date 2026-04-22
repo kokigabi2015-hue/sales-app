@@ -1070,7 +1070,7 @@ body {
 <div class="screen" style="display:none"  id="screen-success">
   <div class="success-screen">
     <div class="success-icon">🎉</div>
-    <div class="success-title">تم إرسال الطلب بنجاح!</div>
+    <div class="success-title" id="success-title">تم إرسال الطلب بنجاح!</div>
     <div class="success-sub" id="success-details"></div>
     <button class="success-btn" id="whatsapp-btn" onclick="sendOrderWhatsApp()" style="
       background:linear-gradient(135deg,#25d366,#128c7e);
@@ -3107,27 +3107,33 @@ async function submitOrder() {
   }
   hideLoading();
 
-  // تحديث محلي
+  // تحديث محلي + شاشة النجاح في كلتا الحالتين
   if(isEdit) {
     var idx = ORDERS.findIndex(function(x){ return (x.orderID||x.id) === _editingOrderID; });
     if(idx !== -1) ORDERS[idx] = Object.assign(ORDERS[idx], order);
     _editingOrderID = null;
-    // إعادة نص زر الإرسال
     var submitBtn = document.querySelector('.submit-order-btn');
     if(submitBtn) submitBtn.textContent = '✅ تأكيد وإرسال الطلب';
     updateStats();
-    goTo('screen-orders');
-    renderOrders();
   } else {
     ORDERS.push(order);
     updateStats();
-    lastCompletedOrder = order;
-    const cfg = CATEGORIES[currentCategory] || {};
-    var detailText = cfg.emoji + ' ' + currentCategory + ' | رقم: ' + order.orderID + ' | ' + rawTotal.toFixed(2) + ' DA';
-    if(creditUsed > 0) detailText += ' (رصيد مخصوم: ' + creditUsed.toFixed(0) + ' دج)';
-    document.getElementById('success-details').textContent = detailText;
-    goTo('screen-success');
   }
+
+  // شاشة النجاح + واتساب لكلتا الحالتين
+  order._isEdit = isEdit;
+  lastCompletedOrder = order;
+  const cfg = CATEGORIES[currentCategory] || {};
+  var titleEl = document.getElementById('success-title') || { textContent: '' };
+  if(isEdit) {
+    document.querySelector('#screen-success .success-title').textContent = 'تم تعديل الطلب بنجاح!';
+  } else {
+    document.querySelector('#screen-success .success-title').textContent = 'تم إرسال الطلب بنجاح!';
+  }
+  var detailText = cfg.emoji + ' ' + currentCategory + ' | رقم: ' + order.orderID + ' | ' + rawTotal.toFixed(2) + ' DA';
+  if(creditUsed > 0) detailText += ' (رصيد مخصوم: ' + creditUsed.toFixed(0) + ' دج)';
+  document.getElementById('success-details').textContent = detailText;
+  goTo('screen-success');
 }
 
 // ===== WHATSAPP =====
@@ -3141,24 +3147,28 @@ function sendOrderWhatsApp() {
   if(!o) return;
 
   const cfg = CATEGORIES[o.category] || { emoji: '📦' };
+  const isEdit = o._isEdit || false;
+  const priceLabel = o.priceType === 'super_gros' ? '⭐ Super Gros' : '🏷️ Gros';
 
   // بناء قائمة المنتجات
-  const itemsText = o.items.map(i =>
-    `  • ${i.name} × ${i.qty} — ${(i.price * i.qty).toFixed(2)} DA`
-  ).join('\n');
+  const itemsText = (o.items || []).map(i => {
+    const price = Number(i.unitPrice || i.price || 0);
+    const qty   = Number(i.qty || i.quantity || 0);
+    return `  • ${i.name || i.productName} × ${qty} — ${(price * qty).toFixed(2)} DA`;
+  }).join('\n');
 
   const msg =
-`🧾 *طلب جديد — ${o.category || ''}* ${cfg.emoji || ''}
+`${isEdit ? '✏️' : '🧾'} *${isEdit ? 'تعديل طلب' : 'طلب جديد'} — ${o.category || ''}* ${cfg.emoji || ''}
 ━━━━━━━━━━━━━━━
 👤 *الزبون:* ${o.customerName} (${o.customerCode})
 📅 *التاريخ:* ${o.date}
 🔖 *رقم الطلب:* ${o.orderID}
+💰 *نوع السعر:* ${priceLabel}
 
 📦 *المنتجات:*
 ${itemsText}
 
-💰 *الإجمالي:* ${Number(o.total).toFixed(2)} DA
-${o.notes ? '📝 *ملاحظات:* ' + o.notes : ''}`;
+💵 *الإجمالي:* ${Number(o.total).toFixed(2)} DA${o.creditUsed > 0 ? '\n🎁 *رصيد مخصوم:* ' + Number(o.creditUsed).toFixed(2) + ' DA\n✅ *المستحق:* ' + Number(o.netTotal || o.total).toFixed(2) + ' DA' : ''}${o.notes ? '\n📝 *ملاحظات:* ' + o.notes : ''}`;
 
   const url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
