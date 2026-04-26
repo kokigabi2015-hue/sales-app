@@ -248,7 +248,7 @@ body {
 }
 .customer-card:active { background: var(--surface2); transform: scale(0.98); }
 .cust-avatar {
-  width: 44px; height: 44px;
+  width: 90px; height: 90px;
   background: linear-gradient(135deg, var(--accent2), var(--accent));
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
@@ -269,7 +269,7 @@ body {
   text-align: center;
 }
 .cust-detail-avatar {
-  width: 64px; height: 64px;
+  width: 120px; height: 120px;
   background: linear-gradient(135deg, var(--accent2), var(--accent));
   border-radius: 18px;
   display: flex; align-items: center; justify-content: center;
@@ -1928,7 +1928,7 @@ function getCustomerCredit(code) {
 }
 
 async function manualSync() {
-  showLoading('جاري التزامن مع Google Sheets...');
+  showLoading('جاري التزامن  ...');
   try {
     const [custRes, prodRes] = await Promise.all([
       fetch(SCRIPT_URL + '?type=customers'),
@@ -1951,7 +1951,7 @@ async function manualSync() {
     const time = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
     const el = document.getElementById('sync-time');
     if(el) el.textContent = 'آخر تزامن: ' + time;
-    showToast('✅ تم التزامن مع Google Sheets!');
+    showToast('✅ تم التزامن !');
   } catch(e) {
     showToast('⚠️ تعذر التزامن — تحقق من الإنترنت');
   }
